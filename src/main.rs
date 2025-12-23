@@ -78,15 +78,30 @@ impl fmt::Display for Temperature {
 // }
 
 fn main() {
-    println!("{}", "\n------ ^^ Temperature Conversion Tool ^^ ------\n".bold().purple());
+    println!(
+        "{}",
+        "\n------ ^^ Temperature Conversion Tool ^^ ------\n"
+            .bold()
+            .purple()
+    );
 
     let source = ask_source();
 
-    println!("\n--- {} {} {} ---", "You chose:".bold().blue(), source.name().bold().green(), source.symbol().bold().green());
+    println!(
+        "\n--- {} {} {} ---",
+        "You chose:".bold().blue(),
+        source.name().bold().green(),
+        source.symbol().bold().green()
+    );
 
     let target = ask_target();
 
-    println!("\n--- {} {} {} ---", "You chose:".bold().blue(), target.name().bold().green(), target.symbol().bold().green());
+    println!(
+        "\n--- {} {} {} ---",
+        "You chose:".bold().blue(),
+        target.name().bold().green(),
+        target.symbol().bold().green()
+    );
 
     let temperature = ask_temperature(source);
     let canon_unit = Unit::to_kelvin(temperature);
@@ -123,7 +138,7 @@ fn ask_source() -> Unit {
             "3" => return Unit::Kelvin,
             _ => println!(
                 "\n{}\n",
-                "Input was either a string or an invalid number. Try again."
+                    "Sorry, I couldn't read your input D:\nIt must've been either a string or an invalid number\nPlease, try again ^^"
                     .bold()
                     .red()
             ),
@@ -153,7 +168,7 @@ fn ask_target() -> Unit {
             "3" => return Unit::Kelvin,
             _ => println!(
                 "\n{}\n",
-                "Input was either a string or an invalid number. Try again."
+                    "Sorry, I couldn't read your input D:\nIt must've been either a string or an invalid number\nPlease, try again ^^"
                     .bold()
                     .red()
             ),
@@ -164,7 +179,7 @@ fn ask_target() -> Unit {
 fn ask_temperature(u: Unit) -> Temperature {
     loop {
         println!(
-            "\nInput the temperature value: {}",
+            "\nNow just tell me the temperature n.n {}",
             "(You can use decimals too!)".bold().blue()
         );
 
@@ -178,7 +193,7 @@ fn ask_temperature(u: Unit) -> Temperature {
             Err(_) => {
                 println!(
                     "\n{}",
-                    "Input was either a string or an invalid number. Try again."
+                    "Sorry, I couldn't read your input D:\nIt must've been either a string or an invalid number\nPlease, try again ^^"
                         .bold()
                         .red()
                 );
@@ -209,8 +224,7 @@ mod tests {
 
     #[test]
     fn from_kelvin_to_celsius_works() {
-        let result =
-            Unit::from_kelvin(Temperature::new(286.15, Unit::Kelvin), Unit::Celsius).value;
+        let result = Unit::from_kelvin(Temperature::new(286.15, Unit::Kelvin), Unit::Celsius).value;
 
         assert!((result - 13.0).abs() < 0.01);
     }
@@ -218,8 +232,7 @@ mod tests {
     #[test]
     fn from_kelvin_to_fahrenheit_works() {
         let result =
-            Unit::from_kelvin(Temperature::new(262.594, Unit::Kelvin), Unit::Fahrenheit)
-                .value;
+            Unit::from_kelvin(Temperature::new(262.594, Unit::Kelvin), Unit::Fahrenheit).value;
 
         assert!((result - 13.0).abs() < 0.01);
     }
