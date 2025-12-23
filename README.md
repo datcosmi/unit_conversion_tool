@@ -6,8 +6,6 @@ Currently supports only **temperature conversions**, with plans to expand to **a
 > ⚠️ **Disclaimer**  
 > This project is mainly a **learning exercise** to practice Rust fundamentals (enums, structs, traits, input handling, testing, etc.).  
 
----
-
 ## 🚀 Planned Features
 
 - Support for more conversion types:
@@ -16,14 +14,10 @@ Currently supports only **temperature conversions**, with plans to expand to **a
   - Time, speed, etc.
 - Better modularization as the project grows
 
----
-
 ## 🧑‍💻 Requirements
 
 - **Rust** (latest stable recommended)
 - A terminal that supports ANSI colors
-
----
 
 ## 🦀 Installing Rust
 
@@ -43,8 +37,6 @@ After installation, verify it worked:
 rustc --version
 cargo --version
 ```
-
----
 
 ## 📦 Cloning the Project
 ```bash
