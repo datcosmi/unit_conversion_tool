@@ -82,7 +82,7 @@ impl fmt::Display for TemperatureError {
             TemperatureError::BelowAbsoluteZero => {
                 write!(
                     f,
-                    "\n{}", "Temperature cannot be lower than absolute zero (0 °K).\nPlease, try again with another one ^^".bold().red()
+                    "\n{}", "Error: Temperature cannot be lower than absolute zero (0 °K).\nPlease, try again with another one ^^".bold().red()
                 )
             }
         }
@@ -93,9 +93,14 @@ fn print_goodbye() {
     println!("\n    {}", "Thank you for using this tool! <3".bold().purple())
 }
 
-fn main() {
-    if let Err(err) = run() {
-        eprintln!("Error: {}", err);
+fn format_choice(unit: Unit) -> String {
+    format!("You chose {} {}", unit.name(), unit.symbol())
+}
+
+fn quit_or_return<T>(opt: Option<T>) -> Option<T> {
+    match opt {
+        Some(v) => Some(v),
+        None => {print_goodbye(); None}
     }
 }
 
@@ -119,34 +124,24 @@ fn run() -> Result<(), TemperatureError> {
         "(Type number only)".bold().blue()
     );
 
-    let source = match ask_unit() {
+    let source = match quit_or_return(ask_unit()) {
         Some(u) => u,
-        None => {print_goodbye(); return Ok(());}
+        None => return Ok(()),
     };
 
-    println!(
-        "\n--- {} {} {} ---",
-        "You chose:".bold().blue(),
-        source.name().bold().green(),
-        source.symbol().bold().green()
-    );
+    println!("\n--- {} ---",format_choice(source).bold().green());
 
     println!(
         "\nAnd what will we convert this into? :o {}",
         "(Type number only)".bold().blue()
     );
 
-    let target = match ask_unit() {
+    let target = match quit_or_return(ask_unit()) {
         Some(u) => u,
-        None => {print_goodbye(); return Ok(());}
+        None => return Ok(()),
     };
 
-    println!(
-        "\n--- {} {} {} ---",
-        "You chose:".bold().blue(),
-        target.name().bold().green(),
-        target.symbol().bold().green()
-    );
+    println!("\n--- {} ---",format_choice(target).bold().green());
     
     let temperature = match ask_temperature(source) {
         Some(t) => t,
@@ -180,9 +175,7 @@ fn ask_unit() -> Option<Unit> {
             .read_line(&mut input)
             .expect("Failed to read line");
 
-        let trimmed = input.trim();
-
-        match trimmed {
+        match input.trim() {
             "1" => return Some(Unit::Fahrenheit),
             "2" => return Some(Unit::Celsius),
             "3" => return Some(Unit::Kelvin),
@@ -212,9 +205,7 @@ fn ask_temperature(u: Unit) -> Option<Temperature> {
 
         let trimmed = input.trim();
 
-        if trimmed == "q" || trimmed == "Q" {
-            return None;
-        }
+        if trimmed == "q" || trimmed == "Q" { return None; }
 
         let value = match trimmed.parse::<f64>() {
             Ok(num) => num,
@@ -236,6 +227,12 @@ fn ask_temperature(u: Unit) -> Option<Temperature> {
                 continue;
             }
         }
+    }
+}
+
+fn main() {
+    if let Err(err) = run() {
+        eprintln!("{}", err);
     }
 }
 
