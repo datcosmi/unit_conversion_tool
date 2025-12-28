@@ -1,7 +1,10 @@
 use std::io;
 use owo_colors::OwoColorize;
 
+mod conversion;
 mod temperature;
+
+use crate::conversion::Conversion;
 use temperature::{Unit, Temperature, TemperatureError};
 
 fn print_goodbye() {
@@ -20,6 +23,7 @@ fn quit_or_return<T>(opt: Option<T>) -> Option<T> {
 }
 
 // TODO: Handle any kind of conversion
+
 // Handle user errors internally and let them retry
 // Only exit if irrecoverable
 fn run() -> Result<(), TemperatureError> {
@@ -67,8 +71,8 @@ fn run() -> Result<(), TemperatureError> {
     };
 
     // Convert into canon unit first, then into the desired one
-    let canon_unit = Unit::to_kelvin(temperature)?;
-    let result = Unit::from_kelvin(canon_unit, target)?;
+    let canonical = temperature.to_canonical()?;
+    let result = Temperature::from_canonical(canonical, target)?;
 
     println!("\n          {}", "Awesome!!! :D".bold().purple());
     println!(
@@ -82,7 +86,7 @@ fn run() -> Result<(), TemperatureError> {
     Ok(()) // Return succeed to match Result
 }
 
-// TODO: Make it reusable for all conversion types
+// TODO: Make it generic
 fn ask_unit() -> Option<Unit> {
     loop {
         println!("{} Fahrenheit {}", "(1)".bold().green(), "°F".blue());
@@ -111,6 +115,7 @@ fn ask_unit() -> Option<Unit> {
     }
 }
 
+// TODO: Make it generic
 fn ask_temperature(u: Unit) -> Option<Temperature> {
     loop {
         println!(
@@ -164,7 +169,7 @@ mod tests {
     fn from_celsius_to_kelvin_works() {
         let temp = Temperature::new(13.0, Unit::Celsius).expect("valid celsius temperature");
 
-        let result = Unit::to_kelvin(temp).expect("conversion to kelvin should work");
+        let result = temp.to_canonical().expect("conversion to kelvin should work");
 
         assert!((result.value - 286.15).abs() < 0.01);
     }
@@ -173,7 +178,7 @@ mod tests {
     fn from_fahrenheit_to_kelvin_works() {
         let temp = Temperature::new(13.0, Unit::Fahrenheit).expect("valid fahrenheit temperature");
 
-        let result = Unit::to_kelvin(temp).expect("conversion to kelvin should work");
+        let result = temp.to_canonical().expect("conversion to kelvin should work");
 
         assert!((result.value - 262.594).abs() < 0.01);
     }
@@ -183,7 +188,7 @@ mod tests {
         let temp = Temperature::new(286.15, Unit::Kelvin).expect("valid kelvin temperature");
 
         let result =
-            Unit::from_kelvin(temp, Unit::Celsius).expect("conversion to celsius should work");
+            Temperature::from_canonical(temp, Unit::Celsius).expect("conversion to celsius should work");
 
         assert!((result.value - 13.0).abs() < 0.01);
     }
@@ -193,7 +198,7 @@ mod tests {
         let temp = Temperature::new(262.594, Unit::Kelvin).expect("valid kelvin temperature");
 
         let result =
-            Unit::from_kelvin(temp, Unit::Fahrenheit).expect("conversion to celsius should work");
+            Temperature::from_canonical(temp, Unit::Fahrenheit).expect("conversion to celsius should work");
 
         assert!((result.value - 13.0).abs() < 0.01);
     }
