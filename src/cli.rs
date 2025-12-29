@@ -24,8 +24,6 @@ fn quit_or_return<T>(opt: Option<T>) -> Option<T> {
     }
 }
 
-// TODO: Handle any kind of conversion
-
 // Handle user errors internally and let them retry
 // Only exit if irrecoverable
 pub fn run() {
@@ -289,6 +287,39 @@ fn conversion_flow<T, U, AskUnit, AskValue, PrintChoice>(
         value.bold().green(),
         result.bold().green()
     );
+}
+
+fn ask_unit<U, F>(choices: &[(&str, U)], prompt: &str) -> Option<U>
+where
+    U: Copy,
+    F: Fn() -> String,
+{
+    loop {
+        println!("{}", prompt.bold().blue());
+
+        for (i, (label, _)) in choices.iter().enumerate() {
+            println!("{} {}", format!("({})", i + 1).bold().green(), label);
+        }
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let trimmed = input.trim();
+
+        if trimmed.eq_ignore_ascii_case("q") {
+            return None;
+        }
+        
+        if let Ok(idx) = trimmed.parse::<usize>() {
+            if idx >= 1 && idx <= choices.len() {
+                return Some(choices[idx - 1].1);
+            }
+        }
+ 
+        println!(
+            "\n{}",
+            "Sorry, invalid input. Please try again ^^".bold().red()
+        );
+    }
 }
 
 #[cfg(test)]
