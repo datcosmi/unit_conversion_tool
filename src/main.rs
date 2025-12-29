@@ -29,13 +29,14 @@ fn quit_or_return<T>(opt: Option<T>) -> Option<T> {
 // Handle user errors internally and let them retry
 // Only exit if irrecoverable
 fn run() {
-    loop {
     println!(
         "{}",
         "\n------ ^^ Unit Conversion Tool ^^ ------\n"
             .bold()
             .purple()
     );
+
+    loop {
 
     println!("{} Temperature", "(1)".bold().green());
     println!("{} Length", "(2)".bold().green());
@@ -63,138 +64,20 @@ fn run() {
 }
 
 fn run_temperature_flow() {
-    println!(
-        "{}",
-        "\n------ ^^ Temperature Conversion Tool ^^ ------\n"
-            .bold()
-            .purple()
-    );
-
-    println!(
-        "{} {} {}\n",
-        "Press".bold(),
-        "(q/Q)".bold().green(),
-        "to exit at any moment".bold(),
-    );
-
-    println!(
-        "What will we convert today? :D {}",
-        "(Type number only)".bold().blue()
-    );
-
-    let source = match quit_or_return(ask_temperature_unit()) {
-        Some(u) => u,
-        None => return,
-    };
-
-    println!("\n--- {} ---",format_temperature_choice(source).bold().green());
-
-    println!(
-        "\nAnd what will we convert this into? :o {}",
-        "(Type number only)".bold().blue()
-    );
-
-    let target = match quit_or_return(ask_temperature_unit()) {
-        Some(u) => u,
-        None => return,
-    };
-
-    println!("\n--- {} ---",format_temperature_choice(target).bold().green());
-    
-    let temperature = match ask_temperature_value(source) {
-        Some(t) => t,
-        None => {print_goodbye(); return}
-    };
-
-    // Convert into canon unit first, then into the desired one
-    let canonical = match temperature.to_canonical() {
-        Ok(v) => v,
-        Err(e) => {
-            println!("{}", e);
-            return;
-        }
-    };
-    let result = match Temperature::from_canonical(canonical, target) {
-        Ok(v) => v,
-        Err(e) => {
-            println!("{}", e);
-            return;
-        }
-    };
-
-    println!("\n          {}", "Awesome!!! :D".bold().purple());
-    println!(
-        "\n--- {} equals to {}! ^^ ---",
-        temperature.bold().green(),
-        result.bold().green()
+    conversion_flow::<Temperature, TemperatureUnit, _, _, _>(
+        "Temperature Conversion Tool",
+        ask_temperature_unit,
+        ask_temperature_value,
+        format_temperature_choice,
     );
 }
 
 fn run_length_flow() {
-    println!(
-        "{}",
-        "\n------ ^^ Length Conversion Tool ^^ ------\n"
-            .bold()
-            .purple()
-    );
-
-    println!(
-        "{} {} {}\n",
-        "Press".bold(),
-        "(q/Q)".bold().green(),
-        "to exit at any moment".bold(),
-    );
-
-    println!(
-        "What will we convert today? :D {}",
-        "(Type number only)".bold().blue()
-    );
-
-    let source = match quit_or_return(ask_length_unit()) {
-        Some(u) => u,
-        None => return,
-    };
-
-    println!("\n--- {} ---",format_length_choice(source).bold().green());
-
-    println!(
-        "\nAnd what will we convert this into? :o {}",
-        "(Type number only)".bold().blue()
-    );
-
-    let target = match quit_or_return(ask_length_unit()) {
-        Some(u) => u,
-        None => return,
-    };
-
-    println!("\n--- {} ---",format_length_choice(target).bold().green());
-    
-    let length = match ask_length_value(source) {
-        Some(t) => t,
-        None => {print_goodbye(); return}
-    };
-
-    // Convert into canon unit first, then into the desired one
-    let canonical = match length.to_canonical() {
-        Ok(v) => v,
-        Err(e) => {
-            println!("{}", e);
-            return;
-        }
-    };
-    let result = match Length::from_canonical(canonical, target) {
-        Ok(v) => v,
-        Err(e) => {
-            println!("{}", e);
-            return;
-        }
-    };
-
-    println!("\n          {}", "Awesome!!! :D".bold().purple());
-    println!(
-        "\n--- {} equals to {}! ^^ ---",
-        length.bold().green(),
-        result.bold().green()
+    conversion_flow::<Length, LengthUnit, _, _, _>(
+        "Length Conversion Tool",
+        ask_length_unit,
+        ask_length_value,
+        format_length_choice,
     );
 }
 
@@ -335,6 +218,77 @@ fn ask_length_value(u: LengthUnit) -> Option<Length> {
             }
         }
     }
+}
+
+fn conversion_flow<T, U, AskUnit, AskValue, PrintChoice>(
+    title: &str,
+    ask_unit: AskUnit,
+    ask_value: AskValue,
+    print_choice: PrintChoice
+)
+    where
+        T:Conversion<Unit = U> + std::fmt::Display + Copy,
+        <T as Conversion>::Error: std::fmt::Display,
+        U: Copy,
+        AskUnit: Fn() -> Option<U>,
+        AskValue: Fn(U) -> Option<T>,
+        PrintChoice: Fn(U) -> String,
+{
+    println!(
+        "{}",
+        format!("\n------ ^^ {} ^^ ------\n", title)
+            .bold()
+            .purple()
+    );
+
+    println!(
+        "{} {} {}\n",
+        "Press".bold(),
+        "(q/Q)".bold().green(),
+        "to exit at any moment".bold(),
+    );
+
+    let source = match quit_or_return(ask_unit()) {
+        Some(u) => u,
+        None => return,
+    };
+
+    println!("\n--- {} ---", print_choice(source).bold().green());
+
+    let target = match quit_or_return(ask_unit()) {
+        Some(u) => u,
+        None => return,
+    };
+
+    println!("\n--- {} ---", print_choice(target).bold().green());
+
+    let value = match ask_value(source) {
+        Some(v) => v,
+        None => return,
+    };
+
+    let canonical = match value.to_canonical() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
+
+    let result = match T::from_canonical(canonical, target) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
+
+    println!("\n          {}", "Awesome!!! :D".bold().purple());
+    println!(
+        "\n--- {} equals to {}! ^^ ---",
+        value.bold().green(),
+        result.bold().green()
+    );
 }
 
 fn main() {
