@@ -1,17 +1,19 @@
 use std::io;
 use owo_colors::OwoColorize;
 
-mod conversion;
-mod temperature;
-
-use crate::conversion::Conversion;
-use temperature::{Unit, Temperature, TemperatureError};
+use unit_helper::conversion::Conversion;
+use unit_helper::temperature::{Temperature, Unit as TemperatureUnit};
+use unit_helper::length::{Length, Unit as LengthUnit};
 
 fn print_goodbye() {
     println!("\n    {}", "Thank you for using this tool! <3".bold().purple())
 }
 
-fn format_choice(unit: Unit) -> String {
+fn format_temperature_choice(unit: TemperatureUnit) -> String {
+    format!("You chose {} {}", unit.name(), unit.symbol())
+}
+
+fn format_length_choice(unit: LengthUnit) -> String {
     format!("You chose {} {}", unit.name(), unit.symbol())
 }
 
@@ -26,7 +28,41 @@ fn quit_or_return<T>(opt: Option<T>) -> Option<T> {
 
 // Handle user errors internally and let them retry
 // Only exit if irrecoverable
-fn run() -> Result<(), TemperatureError> {
+fn run() {
+    loop {
+    println!(
+        "{}",
+        "\n------ ^^ Unit Conversion Tool ^^ ------\n"
+            .bold()
+            .purple()
+    );
+
+    println!("{} Temperature", "(1)".bold().green());
+    println!("{} Length", "(2)".bold().green());
+    println!("{} Quit", "(q/Q)".bold().green());
+
+        let mut input = String::new();
+
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+
+        match input.trim() {
+            "1" => run_temperature_flow(),
+            "2" => run_length_flow(),
+            "q" => return,
+            "Q" => return,
+            _ => println!(
+                "\n{}\n",
+                    "Sorry, I couldn't read your input D:\nIt must've been either a string or an invalid number.\nPlease, try again ^^"
+                    .bold()
+                    .red()
+            ),
+        }
+    }
+}
+
+fn run_temperature_flow() {
     println!(
         "{}",
         "\n------ ^^ Temperature Conversion Tool ^^ ------\n"
@@ -46,33 +82,45 @@ fn run() -> Result<(), TemperatureError> {
         "(Type number only)".bold().blue()
     );
 
-    let source = match quit_or_return(ask_unit()) {
+    let source = match quit_or_return(ask_temperature_unit()) {
         Some(u) => u,
-        None => return Ok(()),
+        None => return,
     };
 
-    println!("\n--- {} ---",format_choice(source).bold().green());
+    println!("\n--- {} ---",format_temperature_choice(source).bold().green());
 
     println!(
         "\nAnd what will we convert this into? :o {}",
         "(Type number only)".bold().blue()
     );
 
-    let target = match quit_or_return(ask_unit()) {
+    let target = match quit_or_return(ask_temperature_unit()) {
         Some(u) => u,
-        None => return Ok(()),
+        None => return,
     };
 
-    println!("\n--- {} ---",format_choice(target).bold().green());
+    println!("\n--- {} ---",format_temperature_choice(target).bold().green());
     
-    let temperature = match ask_temperature(source) {
+    let temperature = match ask_temperature_value(source) {
         Some(t) => t,
-        None => {print_goodbye(); return Ok(());}
+        None => {print_goodbye(); return}
     };
 
     // Convert into canon unit first, then into the desired one
-    let canonical = temperature.to_canonical()?;
-    let result = Temperature::from_canonical(canonical, target)?;
+    let canonical = match temperature.to_canonical() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
+    let result = match Temperature::from_canonical(canonical, target) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
 
     println!("\n          {}", "Awesome!!! :D".bold().purple());
     println!(
@@ -80,14 +128,78 @@ fn run() -> Result<(), TemperatureError> {
         temperature.bold().green(),
         result.bold().green()
     );
+}
 
-    print_goodbye();
+fn run_length_flow() {
+    println!(
+        "{}",
+        "\n------ ^^ Length Conversion Tool ^^ ------\n"
+            .bold()
+            .purple()
+    );
 
-    Ok(()) // Return succeed to match Result
+    println!(
+        "{} {} {}\n",
+        "Press".bold(),
+        "(q/Q)".bold().green(),
+        "to exit at any moment".bold(),
+    );
+
+    println!(
+        "What will we convert today? :D {}",
+        "(Type number only)".bold().blue()
+    );
+
+    let source = match quit_or_return(ask_length_unit()) {
+        Some(u) => u,
+        None => return,
+    };
+
+    println!("\n--- {} ---",format_length_choice(source).bold().green());
+
+    println!(
+        "\nAnd what will we convert this into? :o {}",
+        "(Type number only)".bold().blue()
+    );
+
+    let target = match quit_or_return(ask_length_unit()) {
+        Some(u) => u,
+        None => return,
+    };
+
+    println!("\n--- {} ---",format_length_choice(target).bold().green());
+    
+    let length = match ask_length_value(source) {
+        Some(t) => t,
+        None => {print_goodbye(); return}
+    };
+
+    // Convert into canon unit first, then into the desired one
+    let canonical = match length.to_canonical() {
+        Ok(v) => v,
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
+    let result = match Length::from_canonical(canonical, target) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
+
+    println!("\n          {}", "Awesome!!! :D".bold().purple());
+    println!(
+        "\n--- {} equals to {}! ^^ ---",
+        length.bold().green(),
+        result.bold().green()
+    );
 }
 
 // TODO: Make it generic
-fn ask_unit() -> Option<Unit> {
+fn ask_temperature_unit() -> Option<TemperatureUnit> {
     loop {
         println!("{} Fahrenheit {}", "(1)".bold().green(), "°F".blue());
         println!("{} Celsius {}", "(2)".bold().green(), "°C".blue());
@@ -100,9 +212,40 @@ fn ask_unit() -> Option<Unit> {
             .expect("Failed to read line");
 
         match input.trim() {
-            "1" => return Some(Unit::Fahrenheit),
-            "2" => return Some(Unit::Celsius),
-            "3" => return Some(Unit::Kelvin),
+            "1" => return Some(TemperatureUnit::Fahrenheit),
+            "2" => return Some(TemperatureUnit::Celsius),
+            "3" => return Some(TemperatureUnit::Kelvin),
+            "q" | "Q" => return None,
+            _ => println!(
+                "\n{}\n",
+                    "Sorry, I couldn't read your input D:\nIt must've been either a string or an invalid number.\nPlease, try again ^^"
+                    .bold()
+                    .red()
+            ),
+        }
+    }
+}
+
+fn ask_length_unit() -> Option<LengthUnit> {
+    loop {
+        println!("{} Meters {}", "(1)".bold().green(), "m".blue());
+        println!("{} Kilometers {}", "(2)".bold().green(), "km".blue());
+        println!("{} Centimeters {}", "(3)".bold().green(), "cm".blue());
+        println!("{} Inches {}", "(3)".bold().green(), "in".blue());
+        println!("{} Feet {}", "(3)".bold().green(), "ft".blue());
+
+        let mut input = String::new();
+
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+
+        match input.trim() {
+            "1" => return Some(LengthUnit::Meters),
+            "2" => return Some(LengthUnit::Kilometers),
+            "3" => return Some(LengthUnit::Centimeters),
+            "4" => return Some(LengthUnit::Inches),
+            "5" => return Some(LengthUnit::Feet),
             "q" | "Q" => return None,
             _ => println!(
                 "\n{}\n",
@@ -116,7 +259,7 @@ fn ask_unit() -> Option<Unit> {
 }
 
 // TODO: Make it generic
-fn ask_temperature(u: Unit) -> Option<Temperature> {
+fn ask_temperature_value(u: TemperatureUnit) -> Option<Temperature> {
     loop {
         println!(
             "\nNow just tell me the temperature n.n {}",
@@ -155,51 +298,131 @@ fn ask_temperature(u: Unit) -> Option<Temperature> {
     }
 }
 
-fn main() {
-    if let Err(err) = run() {
-        eprintln!("{}", err);
+fn ask_length_value(u: LengthUnit) -> Option<Length> {
+    loop {
+        println!(
+            "\nNow just tell me the length n.n {}",
+            "(You can use decimals too!)".bold().blue()
+        );
+
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
+
+        let trimmed = input.trim();
+
+        if trimmed == "q" || trimmed == "Q" { return None; }
+
+        let value = match trimmed.parse::<f64>() {
+            Ok(num) => num,
+            Err(_) => {
+                println!(
+                    "\n{}",
+                    "Sorry, I couldn't read your input D:\nIt must've been either a string or an invalid number\nPlease, try again ^^"
+                        .bold()
+                        .red()
+                );
+                continue;
+            }
+        };
+
+        match Length::new(value, u) {
+            Ok(tmp) => return Some(tmp),
+            Err(err) => {
+                println!("{}", err);
+                continue;
+            }
+        }
     }
+}
+
+fn main() {
+    run();
+    // if let Err(err) = run() {
+    //     eprintln!("{}", err);
+    // }
+    print_goodbye()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // TEMPERATURE
+    
     #[test]
     fn from_celsius_to_kelvin_works() {
-        let temp = Temperature::new(13.0, Unit::Celsius).expect("valid celsius temperature");
+        let temp = Temperature::new(13.0, TemperatureUnit::Celsius).expect("valid celsius temperature");
 
         let result = temp.to_canonical().expect("conversion to kelvin should work");
 
-        assert!((result.value - 286.15).abs() < 0.01);
+        assert!((result.value() - 286.15).abs() < 0.01);
     }
 
     #[test]
     fn from_fahrenheit_to_kelvin_works() {
-        let temp = Temperature::new(13.0, Unit::Fahrenheit).expect("valid fahrenheit temperature");
+        let temp = Temperature::new(13.0, TemperatureUnit::Fahrenheit).expect("valid fahrenheit temperature");
 
         let result = temp.to_canonical().expect("conversion to kelvin should work");
 
-        assert!((result.value - 262.594).abs() < 0.01);
+        assert!((result.value() - 262.594).abs() < 0.01);
     }
 
     #[test]
     fn from_kelvin_to_celsius_works() {
-        let temp = Temperature::new(286.15, Unit::Kelvin).expect("valid kelvin temperature");
+        let temp = Temperature::new(286.15, TemperatureUnit::Kelvin).expect("valid kelvin temperature");
 
         let result =
-            Temperature::from_canonical(temp, Unit::Celsius).expect("conversion to celsius should work");
+            Temperature::from_canonical(temp, TemperatureUnit::Celsius).expect("conversion to celsius should work");
 
-        assert!((result.value - 13.0).abs() < 0.01);
+        assert!((result.value() - 13.0).abs() < 0.01);
     }
 
     #[test]
     fn from_kelvin_to_fahrenheit_works() {
-        let temp = Temperature::new(262.594, Unit::Kelvin).expect("valid kelvin temperature");
+        let temp = Temperature::new(262.594, TemperatureUnit::Kelvin).expect("valid kelvin temperature");
 
         let result =
-            Temperature::from_canonical(temp, Unit::Fahrenheit).expect("conversion to celsius should work");
+            Temperature::from_canonical(temp, TemperatureUnit::Fahrenheit).expect("conversion to celsius should work");
 
-        assert!((result.value - 13.0).abs() < 0.01);
+        assert!((result.value() - 13.0).abs() < 0.01);
     }
+
+    // LENGTH
+
+    #[test]
+    fn from_kilometers_to_meters_works() {
+        let length = Length::new(1.3, LengthUnit::Kilometers);
+
+        let result = length.expect("length creation should work").to_canonical().expect("conversion to meters should work");
+
+        assert!((result.value() - 1300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn from_meters_to_kilometers_works() {
+        let length = Length::new(1300.0, LengthUnit::Meters);
+
+        let result = Length::from_canonical(length.expect("length creation should work"), LengthUnit::Kilometers).expect("conversion to kilometers should work");
+
+        assert!((result.value() - 1.3).abs() < 0.01);
+    }
+
+    // TODO: Solve this lol
+
+    // Generic test function
+    // fn round_trip<T, U, F>(value: f64, unit: U, constructor: F)
+    //     where
+    //         T: Conversion + Copy,
+    //         U: Copy,
+    //         F: Fn(f64, U) -> T,
+    // {
+    //     let original = constructor(value, unit);
+    //     let canon = original.to_canonical().expect("conversion to canonical should succeed");
+    //     let round_trip = T::from_canonical(canon, unit).expect("conversion from canonical should succeed");
+    //
+    //     let epsilon = 0.01;
+    //     assert!((round_trip.value - original.value).abs() < epsilon);
+    // }
 }

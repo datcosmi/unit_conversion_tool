@@ -17,6 +17,10 @@ impl Temperature {
             Ok(Self { value, unit })
         }
     }
+
+    pub fn value(&self) -> f64 {
+        self.value
+    }
 }
 
 impl Conversion for Temperature {
