@@ -62,8 +62,8 @@ pub fn run() {
 }
 
 fn run_temperature_flow() {
-    conversion_flow::<Temperature, TemperatureUnit, _, _, _>(
-        "Temperature Conversion Tool",
+    conversion_flow::<Temperature, TemperatureUnit, _, _, _, _>(
+        "Temperature Conversion",
         ask_temperature_unit,
         ask_temperature_value,
         format_temperature_choice,
@@ -71,8 +71,8 @@ fn run_temperature_flow() {
 }
 
 fn run_length_flow() {
-    conversion_flow::<Length, LengthUnit, _, _, _>(
-        "Length Conversion Tool",
+    conversion_flow::<Length, LengthUnit, _, _, _, _>(
+        "Length Conversion",
         ask_length_unit,
         ask_length_value,
         format_length_choice,
@@ -218,19 +218,20 @@ fn ask_length_value(u: LengthUnit) -> Option<Length> {
     }
 }
 
-fn conversion_flow<T, U, AskUnit, AskValue, PrintChoice>(
-    title: &str,
+fn conversion_flow<T, U, AskUnit, AskValue, FormatChoice, Title>(
+    title: Title,
     ask_unit: AskUnit,
     ask_value: AskValue,
-    print_choice: PrintChoice
+    format_choice: FormatChoice
 )
     where
-        T:Conversion<Unit = U> + std::fmt::Display + Copy,
+        T:Conversion<Unit = U> + Copy + std::fmt::Display,
         <T as Conversion>::Error: std::fmt::Display,
         U: Copy,
         AskUnit: Fn() -> Option<U>,
         AskValue: Fn(U) -> Option<T>,
-        PrintChoice: Fn(U) -> String,
+        FormatChoice: Fn(U) -> String,
+        Title: std::fmt::Display,
 {
     println!(
         "{}",
@@ -248,21 +249,21 @@ fn conversion_flow<T, U, AskUnit, AskValue, PrintChoice>(
 
     let source = match quit_or_return(ask_unit()) {
         Some(u) => u,
-        None => return,
+        None => { print_goodbye(); return; },
     };
 
-    println!("\n--- {} ---", print_choice(source).bold().green());
+    println!("\n--- {} ---", format_choice(source).bold().green());
 
     let target = match quit_or_return(ask_unit()) {
         Some(u) => u,
         None => return,
     };
 
-    println!("\n--- {} ---", print_choice(target).bold().green());
+    println!("\n--- {} ---", format_choice(target).bold().green());
 
     let value = match ask_value(source) {
         Some(v) => v,
-        None => return,
+        None => { print_goodbye(); return; },
     };
 
     let canonical = match value.to_canonical() {
@@ -287,6 +288,8 @@ fn conversion_flow<T, U, AskUnit, AskValue, PrintChoice>(
         value.bold().green(),
         result.bold().green()
     );
+
+    print_goodbye();
 }
 
 fn ask_unit<U, F>(choices: &[(&str, U)], prompt: &str) -> Option<U>
